@@ -1,70 +1,221 @@
 // src/pages/Tienda/Registro.jsx
-// ... (imports y lógica igual)
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { addUserToList, getLoggedInUser } from '../../utils/localStorageHelper';
+import { getLoggedInUser } from '../../utils/localStorageHelper';
+import { createNewUser } from '../../utils/apiHelper'; 
 
 function Registro() {
-  const [nombre, setNombre] = useState(''); /* ...otros estados */
-  const [email, setEmail] = useState('');
+  const [nombreCompleto, setNombre] = useState('');
+  const [correo, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('+569');
+  const [region, setRegion] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => { if (getLoggedInUser()) navigate('/', { replace: true }); }, [navigate]);
+  // Si ya está logueado, redirigir a home
+  useEffect(() => {
+    if (getLoggedInUser()) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
-  const handleTelefonoChange = (e) => { /* ...lógica igual... */
-    let v = e.target.value; if (!v.startsWith('+569')) v = '+569';
-    setTelefono('+569' + v.substring(4).replace(/\D/g, '').substring(0, 8));
+  // Validación en tiempo real del teléfono
+  const handleTelefonoChange = (e) => {
+    let value = e.target.value;
+
+    if (!value.startsWith('+569')) {
+      value = '+569';
+    }
+
+    const numberPart = value.substring(4).replace(/\D/g, ''); 
+    value = '+569' + numberPart.substring(0, 8);
+
+    setTelefono(value);
   };
 
-  const handleSubmit = (event) => { /* ...lógica de submit igual... */
-    event.preventDefault(); setError(''); setSuccess('');
-    if (nombre.length === 0 || nombre.length > 25) { setError('Nombre entre 1 y 25 caracteres.'); return; }
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    // Validaciones
+    if (nombreCompleto.length === 0 || nombreCompleto.length > 25) {
+      setError('El nombre debe tener entre 1 y 25 caracteres.');
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@(duocuc\.cl|gmail\.com)$/;
-    if (!emailRegex.test(email)) { setError('Correo inválido (@duocuc.cl o @gmail.com).'); return; }
-    if (password.length < 7 || password.length > 12) { setError('Contraseña entre 7 y 12 caracteres.'); return; }
-    if (telefono.length !== 12) { setError('Teléfono formato +569XXXXXXXX.'); return; }
-    if (!direccion) { setError('Dirección obligatoria.'); return; }
-    const newUser = { id: Date.now().toString(), nombre, email, password, direccion, telefono };
-    if (addUserToList(newUser)) {
-      setSuccess('¡Registro exitoso! Redirigiendo...'); setNombre(''); /*...limpiar otros...*/ setEmail(''); setPassword(''); setDireccion(''); setTelefono('+569');
+    if (!emailRegex.test(correo)) {
+      setError('Correo inválido. Solo se aceptan @duocuc.cl y @gmail.com.');
+      return;
+    }
+
+    if (password.length < 7 || password.length > 12) {
+      setError('La contraseña debe tener entre 7 y 12 caracteres.');
+      return;
+    }
+
+    if (telefono.length !== 12) {
+      setError('El teléfono debe tener el formato +569 seguido de 8 dígitos.');
+      return;
+    }
+
+    if (!direccion) {
+      setError('La dirección de entrega es obligatoria.');
+      return;
+    }
+
+    if (!region) {
+      setError('La región es obligatoria.');
+      return;
+    }
+
+    // OBJETO JSON CORREGIDO PARA SPRING BOOT
+    const newUser = {
+      nombreCompleto,
+      correo,
+      password, // ✔ ESTE CAMPO DEBE LLAMARSE ASÍ PARA MATCH CON LA ENTITY
+      direccion,
+      telefono,
+      region,
+      comuna: 'N/A',
+      rol: 'Cliente'
+    };
+
+    // Llamada a la API Spring Boot
+    const result = await createNewUser(newUser);
+
+    if (result.success) {
+      setSuccess('¡Registro exitoso! Serás redirigido al inicio de sesión.');
+      
+      setNombre('');
+      setEmail('');
+      setPassword('');
+      setDireccion('');
+      setTelefono('+569');
+      setRegion('');
+
       setTimeout(() => navigate('/login'), 2000);
-    } else { setError('El correo ya está registrado.'); }
+
+    } else {
+      setError(`Error al registrar: ${result.message || 'Intenta con otro correo.'}`);
+    }
   };
 
   return (
-    // Quitamos "container", añadimos padding horizontal (px-md-4) y vertical (py-5)
-    <div className="px-md-4 py-5 d-flex align-items-center justify-content-center" style={{ minHeight: 'calc(100vh - 116px)' }}> {/* Centrar verticalmente */}
+    <div className="px-md-4 py-5 d-flex align-items-center justify-content-center" style={{ minHeight: 'calc(100vh - 116px)' }}>
       <div className="row justify-content-center w-100">
         <div className="col-md-7 col-lg-6">
           <div className="card shadow">
             <div className="card-body p-5">
               <h2 className="card-title text-center mb-4">Crear Cuenta</h2>
+
               {error && <div className="alert alert-danger">{error}</div>}
               {success && <div className="alert alert-success">{success}</div>}
+
               <form onSubmit={handleSubmit}>
+
                 {/* Nombre */}
-                <div className="mb-3"><label htmlFor="nombreInput" className="form-label">Nombre</label><input type="text" className="form-control" id="nombreInput" value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength="25" /><div className="form-text">Máx 25.</div></div>
+                <div className="mb-3">
+                  <label className="form-label">Nombre Completo</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={nombreCompleto}
+                    onChange={(e) => setNombre(e.target.value)}
+                    required
+                    maxLength="25"
+                  />
+                </div>
+
                 {/* Email */}
-                <div className="mb-3"><label htmlFor="emailInputReg" className="form-label">Correo</label><input type="email" className="form-control" id="emailInputReg" value={email} onChange={(e) => setEmail(e.target.value)} required /><div className="form-text">@duocuc.cl o @gmail.com.</div></div>
+                <div className="mb-3">
+                  <label className="form-label">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={correo}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <div className="form-text">Solo @duocuc.cl y @gmail.com.</div>
+                </div>
+
                 {/* Contraseña */}
-                <div className="mb-3"><label htmlFor="passwordInputReg" className="form-label">Contraseña</label><input type="password" className="form-control" id="passwordInputReg" value={password} onChange={(e) => setPassword(e.target.value)} required minLength="7" maxLength="12" /><div className="form-text">7-12 caracteres.</div></div>
+                <div className="mb-3">
+                  <label className="form-label">Contraseña</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength="7"
+                    maxLength="12"
+                  />
+                </div>
+
                 {/* Dirección */}
-                <div className="mb-3"><label htmlFor="direccionInput" className="form-label">Dirección</label><textarea className="form-control" id="direccionInput" rows="3" value={direccion} onChange={(e) => setDireccion(e.target.value)} required></textarea></div>
+                <div className="mb-3">
+                  <label className="form-label">Dirección de Entrega</label>
+                  <textarea
+                    className="form-control"
+                    rows="3"
+                    value={direccion}
+                    onChange={(e) => setDireccion(e.target.value)}
+                    required
+                  />
+                </div>
+
                 {/* Teléfono */}
-                <div className="mb-4"><label htmlFor="telefonoInput" className="form-label">Teléfono</label><input type="tel" className="form-control" id="telefonoInput" value={telefono} onChange={handleTelefonoChange} required placeholder="+569xxxxxxxx" maxLength="12" /><div className="form-text">+569XXXXXXXX</div></div>
-                <button type="submit" className="btn btn-primary w-100 mb-3">Registrarse</button>
+                <div className="mb-3">
+                  <label className="form-label">Teléfono de Contacto</label>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={telefono}
+                    onChange={handleTelefonoChange}
+                    required
+                    maxLength="12"
+                  />
+                  <div className="form-text">Formato: +569 seguido de 8 dígitos.</div>
+                </div>
+
+                {/* Región */}
+                <div className="mb-4">
+                  <label className="form-label">Región</label>
+                  <select
+                    className="form-select"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccione una región</option>
+                    <option value="metropolitana">Metropolitana de Santiago</option>
+                    <option value="valparaiso">Valparaíso</option>
+                  </select>
+                </div>
+
+                <button type="submit" className="btn btn-primary w-100">Registrarse</button>
+
               </form>
-              <div className="text-center"><p className="mb-2">¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p><Link to="/">← Volver al inicio</Link></div>
+
+              <div className="text-center mt-3">
+                <p>¿Ya tienes cuenta? <Link to="/login">Inicia sesión aquí</Link></p>
+              </div>
+
+              <div className="text-center mt-3">
+                <Link to="/">← Volver al inicio</Link>
+              </div>
+
             </div>
           </div>
         </div>
       </div>
-    </div> // CIERRA EL DIV PRINCIPAL
+    </div>
   );
 }
 
