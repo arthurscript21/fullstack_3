@@ -1,11 +1,13 @@
+// src/pages/Tienda/Blog.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getBlogPosts } from '../../utils/localStorageHelper'; 
+import { getBlogPosts } from '../../utils/localStorageHelper'; // Usa el helper local
 
 function Blog() {
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {
+    // Carga inicial desde LS
     const data = getBlogPosts();
     setPosts(data);
   }, []);
@@ -13,6 +15,7 @@ function Blog() {
   return (
     <div className="px-md-4 px-3 py-5">
       <h2 className="text-center section-title mb-5">Nuestro Blog</h2>
+
       {posts.length > 0 ? (
         <div className="container">
             <div className="row row-cols-1 row-cols-md-2 g-4 justify-content-center">

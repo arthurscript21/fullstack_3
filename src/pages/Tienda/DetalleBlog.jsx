@@ -1,6 +1,7 @@
+// src/pages/Tienda/DetalleBlog.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getBlogPostById } from '../../utils/localStorageHelper'; 
+import { getBlogPostById } from '../../utils/localStorageHelper';
 
 function DetalleBlog() {
   const { id } = useParams();
@@ -15,6 +16,7 @@ function DetalleBlog() {
     return (
       <div className="px-md-4 px-3 py-5 text-center">
         <h2>Artículo no encontrado</h2>
+        <p>El artículo que buscas no existe.</p>
         <Link to="/blog" className="btn btn-primary mt-3">Volver al Blog</Link>
       </div>
     );
@@ -29,7 +31,7 @@ function DetalleBlog() {
           <div className="col-lg-9 col-xl-8">
             <h1 className="mb-3 display-5">{post.titulo}</h1>
             <p className="text-muted small mb-3">
-              Publicado el {new Date(post.fecha).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' })} por {post.autor}
+              Publicado el {new Date(post.fecha).toLocaleDateString('es-CL')} por {post.autor}
             </p>
             <img src={post.imagen} alt={post.titulo} className="img-fluid rounded mb-4 shadow-sm" style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }} />
             

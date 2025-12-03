@@ -35,43 +35,31 @@ function Login() {
     }
 
     let userData = null;
-    // 2. Intentar API
     try { userData = await fetchUserByEmail(email); } catch (e) {}
-    // 3. Fallback Local
-    if (!userData) {
-      userData = getUsersList().find(u => u.email === email);
-    }
+    if (!userData) { userData = getUsersList().find(u => u.email === email); }
 
     if (!userData) { setError("Usuario no encontrado."); return; }
 
     const userPass = userData.contrasena || userData.password;
     if (userPass !== password) { setError('Contraseña incorrecta.'); return; }
 
-    // --- LÓGICA DE ROLES CORREGIDA ---
-    const roleString = (userData.rol || userData.role || '').toLowerCase();
-    let finalRole = 'cliente'; // Por defecto
+    // Determinar Rol
+    const roleRaw = (userData.rol || userData.role || 'cliente').toLowerCase();
+    let finalRole = 'cliente';
+    if (roleRaw.includes('admin')) finalRole = 'admin';
+    if (roleRaw.includes('vendedor')) finalRole = 'vendedor';
 
-    if (roleString.includes('admin')) {
-        finalRole = 'admin';
-    } else if (roleString.includes('vendedor')) {
-        finalRole = 'vendedor'; // AHORA RECONOCE AL VENDEDOR
-    }
-
-    // Crear sesión
-    const userToSave = {
+    saveLoggedInUser({
       id: userData.user_id || userData.id,
       nombre: userData.nombreCompleto || userData.nombre,
       email: userData.email || userData.correo,
-      role: finalRole // Guardamos el rol correcto
-    };
-
-    saveLoggedInUser(userToSave);
+      role: finalRole
+    });
+    
     dispatchStorageUpdate();
-    alert(`¡Bienvenido ${userToSave.nombre}!`);
-
-    // Si es admin o vendedor, redirigir al panel admin, sino al home
-    const isAdminOrVendor = finalRole === 'admin' || finalRole === 'vendedor';
-    navigate(isAdminOrVendor ? '/admin' : '/');
+    // Si es admin o vendedor, va al panel
+    const isStaff = finalRole === 'admin' || finalRole === 'vendedor';
+    navigate(isStaff ? '/admin' : '/');
   };
 
   return (
