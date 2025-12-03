@@ -1,14 +1,16 @@
 // src/components/admin/Sidebar.jsx
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
+import { logoutUser } from '../../utils/localStorageHelper'; // Asegúrate de importar el logout
 
 function Sidebar() {
   const navigate = useNavigate();
 
+  // Función para cerrar sesión completamente
   const handleLogout = () => {
-    if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-      console.log('Cerrando sesión...');
-      navigate('/');
+    if (window.confirm('¿Está seguro de que desea cerrar sesión?')) {
+      logoutUser(); // Borra la sesión del localStorage
+      navigate('/'); // Redirige al inicio (ahora como usuario anónimo)
     }
   };
 
@@ -40,8 +42,13 @@ function Sidebar() {
         </NavLink>
       </nav>
 
-      {/* Footer del Sidebar (Perfil y Logout) */}
+      {/* Footer del Sidebar */}
       <div className="sidebar-footer">
+        {/* BOTÓN NUEVO: Ir a la tienda SIN cerrar sesión */}
+        <Link to="/" className="btn-action btn-view w-100 text-center mb-3" style={{ display: 'block', textDecoration: 'none' }}>
+          <i className="bi bi-shop"></i> Ir a la Tienda
+        </Link>
+
         <div className="user-profile">
            <img 
              src="https://ui-avatars.com/api/?name=Admin&background=2E8B57&color=fff&size=40" 
@@ -53,6 +60,8 @@ function Sidebar() {
              <small>Administrador</small>
            </div>
         </div>
+        
+        {/* Botón de Cerrar Sesión REAL */}
         <button className="btn-logout mt-3" onClick={handleLogout}>
           Cerrar sesión
         </button>

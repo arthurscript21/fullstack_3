@@ -1,31 +1,28 @@
 // src/components/store/Footer.jsx
 import React from 'react';
-import { Link } from 'react-router-dom'; // Usar Link para navegación interna
+import { Link } from 'react-router-dom';
 
 function Footer() {
   return (
-    <footer className="footer py-4 mt-5"> {/* mt-5 para dar espacio arriba */}
+    <footer className="footer py-4 mt-5">
       <div className="container">
         <div className="row">
-          {/* Columna 1: Info Marca */}
-          <div className="col-md-4 mb-3 mb-md-0">
+          <div className="col-md-4 mb-3">
             <h5 className="footer-title">HuertoHogar</h5>
             <p>Frescura y calidad del campo directamente a tu puerta.</p>
           </div>
 
-          {/* Columna 2: Enlaces */}
-          <div className="col-md-4 mb-3 mb-md-0">
+          <div className="col-md-4 mb-3">
             <h5 className="footer-title">Enlaces</h5>
             <ul className="list-unstyled">
               <li><Link to="/">Inicio</Link></li>
               <li><Link to="/productos">Productos</Link></li>
-               <li><Link to="/nosotros">Nosotros</Link></li>
               <li><Link to="/contacto">Contacto</Link></li>
-              {/* Añadir más links si es necesario */}
+              {/* Link de prueba de seguridad */}
+              <li><Link to="/admin" className="text-muted small">Acceso Administrativo</Link></li>
             </ul>
           </div>
 
-          {/* Columna 3: Contacto */}
           <div className="col-md-4">
             <h5 className="footer-title">Contacto</h5>
             <p className="mb-1">Email: info@huertohogar.cl</p>

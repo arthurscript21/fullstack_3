@@ -1,7 +1,8 @@
 // src/pages/Tienda/Productos.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { products as allProducts, obtenerNombreCategoria } from '../../data/products';
+// CAMBIO: Usar API
+import { apiGetProductos } from '../../utils/apiHelperProducto';
 import ProductCard from '../../components/store/ProductCard';
 
 function Productos() {
@@ -9,110 +10,99 @@ function Productos() {
   const [searchParams] = useSearchParams();
   const searchTerm = searchParams.get('q') || '';
 
+  const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [currentCategory, setCurrentCategory] = useState(categoryName || '');
-  const [currentSearch, setCurrentSearch] = useState(searchTerm);
+  const [loading, setLoading] = useState(true);
 
+  // 1. Cargar productos de la API
   useEffect(() => {
-    const uniqueCategories = [...new Set(allProducts.map(p => p.categoria))];
-    setCategories(uniqueCategories);
-    filterProducts(categoryName, searchTerm);
-    setCurrentCategory(categoryName || '');
-    setCurrentSearch(searchTerm);
-  }, [categoryName, searchTerm]);
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await apiGetProductos();
+        
+        // Mapear datos de la API al formato que usa el frontend si es necesario
+        const mappedData = data.map(p => ({
+          id: p.producto_id || p.id,
+          nombre: p.nombreProducto || p.nombre,
+          precio: p.precio,
+          stock: p.stock,
+          imagen: p.url || p.imagen,
+          descripcion: p.detalle || p.descripcion,
+          // Si la API devuelve objeto categoría, extrae el nombre
+          categoria: (p.categoria?.nombreCategoria || p.categoria || '').toLowerCase()
+        }));
 
-  const filterProducts = (category = currentCategory, search = currentSearch) => {
-     let productsToFilter = allProducts;
-     if (category) {
-         productsToFilter = productsToFilter.filter(p => p.categoria === category);
-     }
-     if (search) {
-         const lowerSearch = search.toLowerCase();
-         productsToFilter = productsToFilter.filter(p =>
-             p.nombre.toLowerCase().includes(lowerSearch) ||
-             (p.descripcion && p.descripcion.toLowerCase().includes(lowerSearch))
-         );
-     }
-     setFilteredProducts(productsToFilter);
-  };
+        setAllProducts(mappedData);
+      } catch (error) {
+        console.error("Error cargando productos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleCategoryChange = (event) => {
-    const newCategory = event.target.value;
-    setCurrentCategory(newCategory);
-    filterProducts(newCategory, currentSearch);
-  };
+    fetchProducts();
+  }, []);
 
-   const handleSearchChange = (event) => {
-       const newSearch = event.target.value;
-       setCurrentSearch(newSearch);
-       filterProducts(currentCategory, newSearch);
-   };
+  // 2. Filtrar cuando cambian los productos, la categoría o la búsqueda
+  useEffect(() => {
+    if (loading) return;
+
+    let result = allProducts;
+
+    // Filtro Categoría
+    if (categoryName) {
+      result = result.filter(p => 
+        p.categoria && p.categoria.includes(categoryName.toLowerCase())
+      );
+    }
+
+    // Filtro Búsqueda
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(p =>
+        p.nombre.toLowerCase().includes(lowerSearch) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(lowerSearch))
+      );
+    }
+
+    setFilteredProducts(result);
+  }, [allProducts, categoryName, searchTerm, loading]);
+
 
   return (
-    // Quitamos la clase "container", añadimos padding horizontal (px-md-4) y vertical (py-5)
     <div className="px-md-4 py-5">
       <h2 className="text-center mb-4 section-title">
-        {currentCategory ? `Productos - ${obtenerNombreCategoria(currentCategory)}` : 'Todos Nuestros Productos'}
+        {categoryName ? `Categoría: ${categoryName.toUpperCase()}` : 'Todos Nuestros Productos'}
       </h2>
 
-      {/* Filtros y Búsqueda */}
-      <div className="row mb-4">
-        {/* Usamos col-md-6 para que en pantallas medianas ocupen la mitad */}
-        <div className="col-md-6 mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar productos..."
-            value={currentSearch}
-            onChange={handleSearchChange}
-            aria-label="Buscar productos"
-          />
-        </div>
-        <div className="col-md-6 mb-3">
-          <select
-            className="form-select"
-            value={currentCategory}
-            onChange={handleCategoryChange}
-            aria-label="Filtrar por categoría"
-            >
-            <option value="">Todas las categorías</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>
-                {obtenerNombreCategoria(cat)}
-              </option>
-            ))}
-          </select>
+      {/* Buscador simple visual */}
+      <div className="row mb-4 justify-content-center">
+        <div className="col-md-6">
+           {/* Este input podría conectarse a un estado para búsqueda en tiempo real si quisieras */}
+           <input type="text" className="form-control" placeholder="Filtrar vista actual..." disabled readOnly value={searchTerm ? `Filtrando por: ${searchTerm}` : ''} />
         </div>
       </div>
 
-      {/* Lista de Productos */}
-      {/* Mantenemos row-cols-* para la cuadrícula responsiva */}
-      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))
-        ) : (
-          <div className="col-12 text-center py-5">
-            <h4>No se encontraron productos</h4>
-            <p>Intenta con otros filtros o términos de búsqueda.</p>
-            {(currentCategory || currentSearch) && (
-                <Link
-                  to="/productos"
-                  className="btn btn-outline-primary mt-2"
-                  onClick={() => {
-                      setCurrentCategory('');
-                      setCurrentSearch('');
-                      filterProducts('', '');
-                  }}>
-                    Mostrar Todos los Productos
-                </Link>
-            )}
-          </div>
-        )}
-      </div>
-    </div> // CIERRA EL DIV PRINCIPAL
+      {loading ? (
+        <p className="text-center">Cargando catálogo...</p>
+      ) : (
+        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          ) : (
+            <div className="col-12 text-center py-5">
+              <h4>No se encontraron productos</h4>
+              <Link to="/productos" className="btn btn-outline-primary mt-2">
+                Ver Todo
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
