@@ -1,21 +1,21 @@
-// src/components/Admin/DashboardCard.jsx
+// src/components/admin/DashboardCard.jsx
 import React from 'react';
 
-
-
-function DashboardCard({ title, value, icon, color = 'primary' }) {
- 
-  const cardClasses = `card text-white bg-${color} mb-3`;
-  const textStyle = { fontSize: '2rem', fontWeight: 'bold'};
-
+function DashboardCard({ title, value, icon, color }) {
+  // Nota: 'color' se usaba antes para bg-bootstrap, ahora usamos CSS personalizado.
+  // Mantenemos la estructura limpia.
+  
   return (
-    <div className={cardClasses} style={{ maxWidth: '18rem' }}>
-      <div className="card-header">{title}</div>
-      <div className="card-body">
-        
+    <div className="dashboard-card">
+      <div>
+        <h3 className="card-title">{title}</h3>
+        <p className="card-value">
+           {value}
+        </p>
+      </div>
+      {/* Si pasas un icono, se renderiza aquí */}
+      <div style={{ fontSize: '2rem', opacity: 0.2, color: 'var(--verde-principal)' }}>
         {icon}
-        <p className="card-text" style={textStyle}>{value}</p>
-       
       </div>
     </div>
   );

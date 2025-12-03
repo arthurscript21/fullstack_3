@@ -1,179 +1,132 @@
-import React, { useState } from "react";
-import { apiAddProducto } from "../../utils/apiHelperProducto";
-import { useNavigate } from "react-router-dom";
+// src/pages/admin/AdminProducts.jsx
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import ProductRow from '../../components/admin/ProductRow';
+import { 
+  apiGetProductos, 
+  apiUpdateProducto, 
+  apiDeleteProducto 
+} from '../../utils/apiHelperProducto';
 
-function AdminAddProduct() {
-  const navigate = useNavigate();
+function AdminProducts() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [producto, setProducto] = useState({
-    nombreProducto: "",
-    precio: "",
-    detalle: "",
-    stock: "",
-    stockCritico: "",
-    url: "",
-    categoriaId: ""   // ← AGREGADO
-  });
-
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    setProducto({
-      ...producto,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!producto.categoriaId) {
-      alert("Debe ingresar un ID de categoría válido.");
-      return;
-    }
-
-    // 🔥 ARMAR EL OBJETO QUE ESPERA EL BACKEND
-    const payload = {
-      nombreProducto: producto.nombreProducto,
-      precio: producto.precio,
-      detalle: producto.detalle,
-      stock: producto.stock,
-      stockCritico: producto.stockCritico,
-      url: producto.url,
-      categoria: {
-        categoriaId: producto.categoriaId   // ← AQUÍ SE ENVÍA AL BACKEND
-      }
-    };
-
+  const loadProducts = async () => {
     try {
       setLoading(true);
-      await apiAddProducto(payload);
-      alert("Producto agregado exitosamente");
-      navigate("/admin/productos");
+      setError('');
+      const data = await apiGetProductos();
+      setProducts(data);
     } catch (err) {
-      alert("Error al agregar producto: " + err.message);
+      console.error("Error loading products:", err);
+      setError('Error al cargar productos: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const handleSaveProduct = async (updatedProduct) => {
+    try {
+      // Mapeo para asegurar que el backend reciba los tipos de datos correctos
+      const productoParaBackend = {
+        producto_id: parseInt(updatedProduct.id || updatedProduct.producto_id),
+        nombreProducto: updatedProduct.nombre,
+        precio: parseInt(updatedProduct.precio),
+        detalle: updatedProduct.detalle || updatedProduct.descripcion || '',
+        stock: parseInt(updatedProduct.stock),
+        stockCritico: parseInt(updatedProduct.stockCritico || 10),
+        url: updatedProduct.imagen || ''
+      };
+
+      const result = await apiUpdateProducto(productoParaBackend);
+      
+      if (result && (result.producto_id || result.success)) {
+        alert('Producto actualizado exitosamente!');
+        loadProducts(); // Recargar lista
+      } else {
+        throw new Error('Respuesta inválida del servidor');
+      }
+    } catch (err) {
+      console.error("Error updating:", err);
+      alert(`Error al actualizar: ${err.message}`);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('¿Está seguro de eliminar este producto?')) return;
+
+    try {
+      await apiDeleteProducto(productId);
+      alert('Producto eliminado exitosamente!');
+      loadProducts();
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+    }
+  };
+
+  if (loading) return <div className="p-4 text-center">Cargando productos...</div>;
+
   return (
-    <div className="container mt-4 p-4 rounded shadow" style={{ maxWidth: "600px", background: "white" }}>
-      <h2 className="text-center mb-4 fw-bold">Agregar Nuevo Producto</h2>
+    <div className="container mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>Gestión de Productos</h1>
+        <Link to="/admin/productos/nuevo" className="btn btn-primary">
+          Añadir Producto
+        </Link>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-
-        {/* NOMBRE */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Nombre del Producto *</label>
-          <input
-            type="text"
-            className="form-control"
-            name="nombreProducto"
-            value={producto.nombreProducto}
-            onChange={handleChange}
-            required
-          />
+      {error && (
+        <div className="alert alert-danger">
+          {error} 
+          <button className="btn btn-sm btn-outline-danger ms-3" onClick={loadProducts}>Reintentar</button>
         </div>
+      )}
 
-        {/* PRECIO */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Precio *</label>
-          <input
-            type="number"
-            className="form-control"
-            name="precio"
-            value={producto.precio}
-            onChange={handleChange}
-            required
-          />
+      {products.length === 0 && !error ? (
+        <div className="alert alert-info">No hay productos disponibles.</div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-striped table-hover align-middle">
+            <thead className="table-dark">
+              <tr>
+                <th>Img</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>S. Crítico</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map(product => (
+                <ProductRow
+                  key={product.producto_id}
+                  product={{
+                    id: product.producto_id,
+                    producto_id: product.producto_id,
+                    nombre: product.nombreProducto,
+                    precio: product.precio,
+                    stock: product.stock,
+                    stockCritico: product.stockCritico,
+                    imagen: product.url,
+                    descripcion: product.detalle
+                  }}
+                  onSave={handleSaveProduct}
+                  onDelete={handleDeleteProduct}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* DETALLE */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Descripción</label>
-          <textarea
-            className="form-control"
-            name="detalle"
-            rows="3"
-            value={producto.detalle}
-            onChange={handleChange}
-          ></textarea>
-        </div>
-
-        {/* STOCK */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Stock *</label>
-          <input
-            type="number"
-            className="form-control"
-            name="stock"
-            value={producto.stock}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        {/* STOCK CRÍTICO */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Stock Crítico *</label>
-          <input
-            type="number"
-            className="form-control"
-            name="stockCritico"
-            value={producto.stockCritico}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        {/* URL IMAGEN */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">URL de Imagen</label>
-          <input
-            type="text"
-            className="form-control"
-            name="url"
-            value={producto.url}
-            onChange={handleChange}
-            placeholder="https://..."
-          />
-        </div>
-
-        {/* ID CATEGORÍA */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">ID Categoria *</label>
-          <input
-            type="number"
-            className="form-control"
-            name="categoriaId"
-            value={producto.categoriaId}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        {/* BOTONES */}
-        <div className="d-flex justify-content-between mt-4">
-          <button 
-            type="button" 
-            className="btn btn-secondary"
-            onClick={() => navigate("/admin/productos")}
-          >
-            Cancelar
-          </button>
-
-          <button 
-            type="submit" 
-            className="btn btn-primary px-4"
-            disabled={loading}
-          >
-            {loading ? "Guardando..." : "Guardar Producto"}
-          </button>
-        </div>
-      </form>
+      )}
     </div>
   );
 }
 
-export default AdminAddProduct;
+export default AdminProducts;

@@ -1,3 +1,4 @@
+// src/pages/admin/AdminCategories.jsx
 import React, { useEffect, useState } from "react";
 import {
   apiGetCategories,
@@ -6,11 +7,12 @@ import {
   apiUpdateCategory,
 } from "../../utils/apiHelperCategoria";
 
-const Categorias = () => {
+const AdminCategories = () => {
   const [categorias, setCategorias] = useState([]);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEditado, setNombreEditado] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Cargar categorías al iniciar
   useEffect(() => {
@@ -18,45 +20,51 @@ const Categorias = () => {
   }, []);
 
   const cargarCategorias = async () => {
+    setLoading(true);
     const data = await apiGetCategories();
-    setCategorias(data);
+    setCategorias(data || []);
+    setLoading(false);
   };
 
   // Agregar nueva categoría
   const handleAgregar = async () => {
     if (!nuevoNombre.trim()) return;
+    
     const success = await apiAddCategory({ nombreCategoria: nuevoNombre });
     if (success) {
       setNuevoNombre("");
       cargarCategorias();
     } else {
-      alert("Error al agregar categoría");
+      alert("Error al agregar categoría (Verifique conexión API)");
     }
   };
 
   // Eliminar categoría
   const handleEliminar = async (id) => {
     if (!window.confirm("¿Eliminar esta categoría?")) return;
+    
     const success = await apiDeleteCategory(id);
-    if (success) cargarCategorias();
-    else alert("Error al eliminar categoría");
+    if (success) {
+      cargarCategorias();
+    } else {
+      alert("Error al eliminar categoría");
+    }
   };
 
-  // Iniciar edición
+  // Modo edición
   const iniciarEdicion = (categoria) => {
     setEditandoId(categoria.categoriaId);
     setNombreEditado(categoria.nombreCategoria);
   };
 
-  // Cancelar edición
   const cancelarEdicion = () => {
     setEditandoId(null);
     setNombreEditado("");
   };
 
-  // Guardar cambios
   const guardarEdicion = async (id) => {
     if (!nombreEditado.trim()) return;
+    
     const success = await apiUpdateCategory(id, { nombreCategoria: nombreEditado });
     if (success) {
       cancelarEdicion();
@@ -67,76 +75,60 @@ const Categorias = () => {
   };
 
   return (
-    <div style={{ maxWidth: "500px", margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
-      <h2>Categorías</h2>
+    <div className="container mt-4" style={{ maxWidth: "700px" }}>
+      <h2 className="mb-4 text-center">Gestión de Categorías</h2>
 
-      {/* Agregar nueva categoría */}
-      <div style={{ display: "flex", marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Nueva categoría"
-          value={nuevoNombre}
-          onChange={(e) => setNuevoNombre(e.target.value)}
-          style={{ flex: 1, padding: "0.5rem" }}
-        />
-        <button onClick={handleAgregar} style={{ marginLeft: "0.5rem", padding: "0.5rem 1rem" }}>
-          Agregar
-        </button>
+      {/* Panel Agregar */}
+      <div className="card p-4 mb-4 shadow-sm">
+        <div className="input-group">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Nueva categoría..."
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+          />
+          <button className="btn btn-success" onClick={handleAgregar} disabled={loading}>
+            Agregar
+          </button>
+        </div>
       </div>
 
-      {/* Lista de categorías */}
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {categorias.map((c) => (
-          <li
-            key={c.categoriaId}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0.5rem",
-              borderBottom: "1px solid #ddd",
-            }}
-          >
-            {/* Mostrar input si está editando, sino mostrar nombre */}
-            {editandoId === c.categoriaId ? (
-              <input
-                type="text"
-                value={nombreEditado}
-                onChange={(e) => setNombreEditado(e.target.value)}
-                style={{ flex: 1, marginRight: "0.5rem", padding: "0.3rem" }}
-              />
-            ) : (
-              <span>{c.nombreCategoria}</span>
-            )}
-
-            <div>
-              {editandoId === c.categoriaId ? (
-                <>
-                  <button
-                    onClick={() => guardarEdicion(c.categoriaId)}
-                    style={{ marginRight: "0.3rem" }}
-                  >
-                    Guardar
-                  </button>
-                  <button onClick={cancelarEdicion}>Cancelar</button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => iniciarEdicion(c)}
-                    style={{ marginRight: "0.3rem" }}
-                  >
-                    Editar
-                  </button>
-                  <button onClick={() => handleEliminar(c.categoriaId)}>Eliminar</button>
-                </>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+      {/* Lista */}
+      {loading ? <p className="text-center">Cargando...</p> : (
+        <ul className="list-group shadow-sm">
+          {categorias.length === 0 ? (
+            <li className="list-group-item text-center text-muted">No se encontraron categorías.</li>
+          ) : (
+            categorias.map((c) => (
+              <li key={c.categoriaId} className="list-group-item d-flex justify-content-between align-items-center">
+                {editandoId === c.categoriaId ? (
+                  <div className="d-flex w-100 gap-2">
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={nombreEditado}
+                      onChange={(e) => setNombreEditado(e.target.value)}
+                    />
+                    <button className="btn btn-sm btn-primary" onClick={() => guardarEdicion(c.categoriaId)}>Guardar</button>
+                    <button className="btn btn-sm btn-secondary" onClick={cancelarEdicion}>Cancelar</button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="fw-medium">{c.nombreCategoria}</span>
+                    <div>
+                      <button className="btn btn-sm btn-warning me-2" onClick={() => iniciarEdicion(c)}>Editar</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleEliminar(c.categoriaId)}>Eliminar</button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
     </div>
   );
 };
 
-export default Categorias;
+export default AdminCategories;

@@ -1,19 +1,26 @@
+// src/components/common/ProtectedRoute.jsx
 import React from 'react';
-// (Más adelante aquí importarás <Navigate> de 'react-router-dom')
+import { Navigate } from 'react-router-dom';
+import { getLoggedInUser } from '../../utils/localStorageHelper'; // Usamos el helper para ver la sesión actual
 
 function ProtectedRoute({ children }) {
- 
-  // ¡REVISA ESTA LÍNEA!
-  const isAuth = true; // Esto está perfecto para probar
+  const user = getLoggedInUser();
 
-  if (!isAuth) {
-    // Si isAuth es false, te estará intentando redirigir a "/login"
-    // return <Navigate to="/login" />;
-    return null; // O simplemente no muestra nada (pantalla en blanco)
+  // 1. Si no hay usuario logueado, redirigir al Login
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  return children; // Solo muestra el AdminLayout si isAuth es true
+  // 2. Normalizar el rol para aceptar "Admin", "admin", "ADMIN", etc.
+  const userRole = (user.role || user.rol || '').toLowerCase();
+
+  // 3. Si el rol NO es admin, redirigir al inicio de la tienda
+  if (userRole !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  // 4. Si es admin, permitir el acceso a la ruta hija
+  return children;
 }
 
-// ¡Te faltaba esta línea!
 export default ProtectedRoute;

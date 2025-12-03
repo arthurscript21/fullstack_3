@@ -1,78 +1,96 @@
 // src/pages/admin/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import DashboardCard from '../../components/admin/DashboardCard'; // Revisa si este componente sigue siendo necesario o si usas las clases directamente
-import UserRow from '../../components/admin/UserRow'; // Para la tabla de usuarios
-import { initialProducts } from '../../data/productsData';
-import { initialUsers } from '../../data/usersData';
+import DashboardCard from '../../components/admin/DashboardCard'; 
+import UserRow from '../../components/admin/UserRow'; 
+// CAMBIO: Importamos los helpers de la API
+import { fetchAllUsers, deleteUserById } from '../../utils/apiHelper';
+import { apiGetProductos } from '../../utils/apiHelperProducto';
 
 function AdminDashboard() {
-  // Estado para usuarios y productos (simulado)
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-   // Cargar usuarios (simulado desde localStorage o inicial)
-   useEffect(() => {
-     const storedUsers = localStorage.getItem('huertohogar_users');
-     setUsers(storedUsers ? JSON.parse(storedUsers) : initialUsers);
-   }, []);
+  // Cargar datos exclusivamente desde la API
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Obtener Usuarios
+        const usersData = await fetchAllUsers();
+        setUsers(usersData || []);
+
+        // 2. Obtener Productos
+        const productsData = await apiGetProductos();
+        setProducts(productsData || []);
+
+      } catch (error) {
+        console.error("Error cargando datos del dashboard:", error);
+        // Si falla, dejamos las listas vacías para no romper la UI
+        setUsers([]);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   const productCount = products.length;
   const userCount = users.length;
-  // Simulación de ingresos (puedes hacerla más compleja)
+  // Calculamos ingresos estimados usando los datos de la API (precio * stock)
   const incomeEstimate = products.reduce((sum, p) => sum + (p.precio * (p.stock || 0)), 0);
 
-  const handleDeleteUser = (userId) => {
-    // Implementa la lógica de borrado si es necesario aquí también
+  // Eliminar usuario usando la API
+  const handleDeleteUser = async (userId) => {
     if (confirm('¿Eliminar usuario? Esta acción es permanente.')) {
-        const updatedUsers = users.filter(u => u.id !== userId);
-        setUsers(updatedUsers);
-        localStorage.setItem('huertohogar_users', JSON.stringify(updatedUsers));
-        alert('Usuario eliminado desde el dashboard.');
+        const result = await deleteUserById(userId);
+        if (result.success) {
+            alert('Usuario eliminado.');
+            // Recargar lista
+            const updatedUsers = await fetchAllUsers();
+            setUsers(updatedUsers);
+        } else {
+            alert('Error al eliminar: ' + result.message);
+        }
     }
   };
 
+  if (loading) {
+    return <div className="p-5 text-center">Cargando panel de control...</div>;
+  }
 
   return (
     <div>
-      {/* Topbar similar a home.html */}
-      <header className="admin-topbar">
-        <h2>Bienvenido, Admin</h2>
-        <p>Panel de administración general</p>
+      <header className="mb-4">
+        <h2>Panel de Control</h2>
+        <p className="text-muted">Bienvenido de nuevo, Administrador.</p>
       </header>
 
-      {/* Sección de Cards */}
-      <section className="dashboard-cards-container" aria-label="Estadísticas rápidas">
-        {/* Card Productos */}
-        <article className="dashboard-card card-productos">
-          <h3>Productos</h3>
-          <p>{productCount}</p>
-        </article>
-        {/* Card Usuarios */}
-        <article className="dashboard-card card-usuarios">
-          <h3>Usuarios</h3>
-          <p>{userCount}</p>
-        </article>
-        {/* Card Ingresos */}
-        <article className="dashboard-card card-ingresos">
-          <h3>Ingresos (Estimado)</h3>
-          <p>${incomeEstimate.toLocaleString('es-CL')}</p>
-        </article>
+      {/* Tarjetas de Resumen */}
+      <section className="dashboard-grid">
+        <DashboardCard title="Productos" value={productCount} />
+        <DashboardCard title="Usuarios" value={userCount} />
+        <DashboardCard title="Ingresos Estimados" value={`$${incomeEstimate.toLocaleString('es-CL')}`} />
       </section>
 
-      {/* Sección Tabla Usuarios (como en home.html) */}
-      <section className="mt-4">
+      {/* Tabla de Usuarios Recientes (Datos reales de API) */}
+      <section className="mt-5">
         <div className="d-flex justify-content-between align-items-center mb-3">
-          <h3>Usuarios Registrados</h3>
-          <Link to="/admin/usuarios/nuevo" className="btn-create-header">
-            Crear usuario
+          <h3>Usuarios Recientes</h3>
+          <Link to="/admin/usuarios/nuevo" className="btn btn-primary">
+            + Nuevo Usuario
           </Link>
         </div>
-        {users.length === 0 ? (
-           <p>No hay usuarios registrados.</p>
-        ) : (
-          <div className="table-responsive">
-            <table className="admin-table table table-striped"> {/* Añadir table-striped de bootstrap opcionalmente */}
+
+        <div className="table-container">
+          {users.length === 0 ? (
+             <p className="p-3 text-muted">No hay usuarios registrados o el servidor está desconectado.</p>
+          ) : (
+            <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Nombre</th>
@@ -84,22 +102,25 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Mostrar solo los primeros 5 usuarios o todos */}
+                  {/* Mostramos los primeros 5 usuarios */}
                   {users.slice(0, 5).map(user => (
                      <UserRow
-                        key={user.id || user.email}
-                        user={user}
-                        onDelete={handleDeleteUser} // Pasar la función de borrado
+                        key={user.user_id || user.id} 
+                        user={{
+                            ...user,
+                            id: user.user_id || user.id // Normalizamos el ID para el componente
+                        }}
+                        onDelete={() => handleDeleteUser(user.user_id || user.id)}
                       />
                   ))}
                 </tbody>
-              </table>
-               {users.length > 5 && (
-                 <div className="text-center mt-3">
-                    <Link to="/admin/usuarios">Ver todos los usuarios...</Link>
-                 </div>
-               )}
-          </div>
+            </table>
+          )}
+        </div>
+        {users.length > 5 && (
+            <div className="text-center mt-3">
+            <Link to="/admin/usuarios" className="btn btn-link">Ver todos los usuarios &rarr;</Link>
+            </div>
         )}
       </section>
     </div>

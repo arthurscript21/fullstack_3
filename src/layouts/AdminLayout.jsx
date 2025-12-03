@@ -3,30 +3,14 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/admin/Sidebar';
 import Footer from '../components/admin/Footer';
-import '../admin-styles.css';
+import '../admin-styles.css'; // Importante: Estilos cargados aquí
+
 function AdminLayout() {
-  const layoutStyle = {
-    display: 'flex',
-    minHeight: '100vh', 
-  };
-
-  const mainContentStyle = {
-    flexGrow: 1, 
-    display: 'flex',
-    flexDirection: 'column', 
-  };
-
-   const contentWrapperStyle = {
-    padding: '2rem', 
-    flexGrow: 1, 
-  };
-
-
   return (
-    <div style={layoutStyle}>
+    <div className="admin-layout">
       <Sidebar />
-      <div style={mainContentStyle}>
-        <main style={contentWrapperStyle}>
+      <div className="admin-content-wrapper">
+        <main className="admin-main">
           {/* Aquí se renderizará el contenido específico de cada ruta */}
           <Outlet />
         </main>

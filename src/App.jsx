@@ -1,10 +1,13 @@
 // src/App.jsx
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
+
 // Layouts
 import StoreLayout from './layouts/StoreLayout';
 import AdminLayout from './layouts/AdminLayout';
+import ProtectedRoute from './components/common/ProtectedRoute'; // IMPORTANTE
+
 // Páginas Tienda
 import Home from './pages/Tienda/home';
 import Productos from './pages/Tienda/Productos';
@@ -22,6 +25,7 @@ import DetalleBlog from './pages/Tienda/DetalleBlog';
 import Checkout from './pages/Tienda/Checkout';
 import PagoExitoso from './pages/Tienda/PagoExitoso';
 import PagoFallido from './pages/Tienda/PagoFallido';
+
 // Páginas Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -39,7 +43,7 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Tienda */}
+        {/* Tienda (Rutas Públicas) */}
         <Route path="/" element={<StoreLayout />}>
            <Route index element={<Home />} />
            <Route path="productos" element={<Productos />} />
@@ -60,20 +64,21 @@ function App() {
            <Route path="pago-fallido" element={<PagoFallido />} />
         </Route>
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Admin (Rutas Protegidas) */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
            <Route index element={<AdminDashboard />} />
            <Route path="ordenes" element={<AdminOrders />} />
            <Route path="ordenes/:id" element={<AdminOrderDetail />} />
            <Route path="productos" element={<AdminProducts />} />
            <Route path="productos/nuevo" element={<CreateProduct />} />
-           {/* <Route path="productos/editar/:productId" element={<EditProduct />} /> */}
            <Route path="usuarios" element={<AdminUsers />} />
            <Route path="usuarios/nuevo" element={<CreateUser />} />
            <Route path="usuarios/editar/:userId" element={<EditUser />} />
-           {/* --- RUTA HISTORIAL USUARIO (AÑADIDA) --- */}
            <Route path="usuarios/historial/:userIdentifier" element={<UserPurchaseHistory />} />
-           {/* --------------------------------------- */}
            <Route path="categorias" element={<AdminCategories />} />
            <Route path="reportes" element={<AdminReports />} />
         </Route>

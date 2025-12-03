@@ -7,7 +7,6 @@ function Sidebar() {
 
   const handleLogout = () => {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-      // logoutUser(); // Asegúrate que tu lógica de logout real esté aquí
       console.log('Cerrando sesión...');
       navigate('/');
     }
@@ -16,28 +15,47 @@ function Sidebar() {
   return (
     <aside className="admin-sidebar">
       <NavLink to="/admin" className="logo-text">
-        HuertoHogar
+        HuertoHogar <span style={{color:'var(--verde-principal)'}}>Admin</span>
       </NavLink>
-      <hr style={{ margin: '1rem 0 1.5rem 0', borderColor: '#eee' }} />
-      <nav className="nav nav-pills flex-column mb-auto">
-        <NavLink to="/admin" end>Dashboard</NavLink>
-        <NavLink to="/admin/ordenes">Órdenes</NavLink>
-        <NavLink to="/admin/productos">Productos</NavLink>
-        <NavLink to="/admin/usuarios">Usuarios</NavLink>
-        <NavLink to="/admin/categorias">Categorías</NavLink>
-        <NavLink to="/admin/reportes">Reportes</NavLink> {/* <-- AÑADIDO AQUÍ */}
+      
+      {/* Navegación */}
+      <nav className="admin-nav">
+        <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'active' : '')}>
+          Dashboard
+        </NavLink>
+        <NavLink to="/admin/ordenes" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Órdenes
+        </NavLink>
+        <NavLink to="/admin/productos" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Productos
+        </NavLink>
+        <NavLink to="/admin/usuarios" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Usuarios
+        </NavLink>
+        <NavLink to="/admin/categorias" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Categorías
+        </NavLink>
+        <NavLink to="/admin/reportes" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Reportes
+        </NavLink>
       </nav>
 
-      <button className="sidebar-button sidebar-logout-btn" onClick={handleLogout}>
-        Cerrar sesión
-      </button>
-
-      <div className="sidebar-button sidebar-profile-btn">
-         <img src="https://ui-avatars.com/api/?name=Admin&background=8B4513&color=fff&size=40" alt="Perfil" className="profile-avatar" />
-         <div className="profile-info">
-           <span className="profile-name">Admin</span>
-           <span className="profile-role">Administrador</span>
-         </div>
+      {/* Footer del Sidebar (Perfil y Logout) */}
+      <div className="sidebar-footer">
+        <div className="user-profile">
+           <img 
+             src="https://ui-avatars.com/api/?name=Admin&background=2E8B57&color=fff&size=40" 
+             alt="Perfil" 
+             className="user-avatar" 
+           />
+           <div className="user-info">
+             <span style={{ fontWeight: 'bold' }}>Admin</span>
+             <small>Administrador</small>
+           </div>
+        </div>
+        <button className="btn-logout mt-3" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   );

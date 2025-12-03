@@ -2,62 +2,66 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UserRow from '../../components/admin/UserRow';
-import { initialUsers } from '../../data/usersData'; 
+// Importamos las funciones de la API en lugar de data/usersData
+import { fetchAllUsers, deleteUserById } from '../../utils/apiHelper';
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Simular carga de datos (reemplazar con fetch o carga inicial)
-  useEffect(() => {
-    // Intentar cargar desde localStorage o usar datos iniciales
-    const storedUsers = localStorage.getItem('huertohogar_users');
-    if (storedUsers) {
-        try {
-            setUsers(JSON.parse(storedUsers));
-        } catch (error) {
-            console.error("Error parsing users from localStorage:", error);
-            setUsers(initialUsers); // Usar iniciales si hay error
-            localStorage.setItem('huertohogar_users', JSON.stringify(initialUsers)); 
-            // Guardar iniciales
-        }
-    } else {
-        setUsers(initialUsers);
-        localStorage.setItem('huertohogar_users', JSON.stringify(initialUsers)); 
-        // Guardar iniciales
-    }
-    setLoading(false);
-  }, []);
-
-  // Función para eliminar usuario
-  const handleDeleteUser = (userId) => {
-    if (confirm('¿Está seguro de que desea eliminar este usuario?')) {
-      const updatedUsers = users.filter(u => u.id !== userId);
-      setUsers(updatedUsers);
-      localStorage.setItem('huertohogar_users', JSON.stringify(updatedUsers)); // Actualizar localStorage
-      alert('Usuario eliminado.');
+  // Cargar usuarios desde la API
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchAllUsers();
+      // fetchAllUsers devuelve un array, si falla devuelve []
+      setUsers(data);
+    } catch (err) {
+      console.error("Error cargando usuarios:", err);
+      setError('No se pudieron cargar los usuarios desde el servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return <p>Cargando usuarios...</p>;
-  }
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  // Eliminar usuario vía API
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('¿Está seguro de que desea eliminar este usuario?')) {
+      const result = await deleteUserById(userId);
+      
+      if (result.success) {
+        alert('Usuario eliminado exitosamente.');
+        loadUsers(); // Recargar la lista
+      } else {
+        alert('Error al eliminar usuario: ' + result.message);
+      }
+    }
+  };
+
+  if (loading) return <div className="p-4">Cargando usuarios...</div>;
 
   return (
-    <div>
+    <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Usuarios Registrados</h1>
+        <h1>Gestión de Usuarios</h1>
         <Link to="/admin/usuarios/nuevo" className="btn btn-primary">
           Crear Usuario
         </Link>
       </div>
 
-      {users.length === 0 ? (
-        <p>No hay usuarios registrados.</p>
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      {users.length === 0 && !error ? (
+        <div className="alert alert-info">No hay usuarios registrados o no se pudo conectar a la API.</div>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-striped table-hover">
-            <thead>
+        <div className="table-responsive shadow-sm rounded">
+          <table className="table table-striped table-hover mb-0">
+            <thead className="table-dark">
               <tr>
                 <th>Nombre</th>
                 <th>Email</th>
@@ -68,12 +72,14 @@ function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {users.map(user => (
+              {users.map((user) => (
                 <UserRow
-                  key={user.id || user.email} 
-                  // Usar email como fallback si no hay id
-                  user={user}
-                  onDelete={handleDeleteUser}
+                  key={user.user_id || user.id || user.email} // Preferir ID del backend
+                  user={{
+                    ...user,
+                    id: user.user_id || user.id // Normalizamos ID para el componente UserRow
+                  }}
+                  onDelete={() => handleDeleteUser(user.user_id || user.id)}
                 />
               ))}
             </tbody>
