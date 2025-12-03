@@ -1,25 +1,24 @@
-// src/components/common/ProtectedRoute.jsx
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { getLoggedInUser } from '../../utils/localStorageHelper'; // Usamos el helper para ver la sesión actual
+import { getLoggedInUser } from '../../utils/localStorageHelper';
 
 function ProtectedRoute({ children }) {
   const user = getLoggedInUser();
 
-  // 1. Si no hay usuario logueado, redirigir al Login
+  // 1. Si no hay usuario, al login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // 2. Normalizar el rol para aceptar "Admin", "admin", "ADMIN", etc.
+  // 2. Normalizar rol
   const userRole = (user.role || user.rol || '').toLowerCase();
 
-  // 3. Si el rol NO es admin, redirigir al inicio de la tienda
-  if (userRole !== 'admin') {
+  // 3. Permitir ADMIN y VENDEDOR
+  if (userRole !== 'admin' && userRole !== 'vendedor') {
     return <Navigate to="/" replace />;
   }
 
-  // 4. Si es admin, permitir el acceso a la ruta hija
+  // 4. Acceso concedido
   return children;
 }
 

@@ -1,21 +1,23 @@
-// src/pages/Tienda/Blog.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { blogPosts } from '../../data/blogData'; // Importa los posts
+import { getBlogPosts } from '../../utils/localStorageHelper'; 
 
 function Blog() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const data = getBlogPosts();
+    setPosts(data);
+  }, []);
+
   return (
-    // Usa padding
     <div className="px-md-4 px-3 py-5">
       <h2 className="text-center section-title mb-5">Nuestro Blog</h2>
-
-      {blogPosts.length > 0 ? (
-        // Container interno para centrar tarjetas
+      {posts.length > 0 ? (
         <div className="container">
             <div className="row row-cols-1 row-cols-md-2 g-4 justify-content-center">
-              {blogPosts.map(post => (
+              {posts.map(post => (
                 <div key={post.id} className="col">
-                  {/* Tarjeta Bootstrap */}
                   <div className="card h-100 shadow-sm overflow-hidden">
                     <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <img src={post.imagen} className="card-img-top" alt={post.titulo} style={{ height: '200px', objectFit: 'cover' }} />

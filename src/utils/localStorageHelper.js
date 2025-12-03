@@ -1,10 +1,13 @@
 // src/utils/localStorageHelper.js
+import { blogPosts as initialBlogPosts } from '../data/blogData'; // Asegúrate de tener este archivo o usa un array vacío []
 
-// Claves (constantes para evitar errores de tipeo)
+// Claves
 const CART_KEY = 'huertohogar_cart';
 const USER_KEY = 'huertohogar_user';
 const USERS_LIST_KEY = 'huertohogar_users';
-const ORDERS_KEY = 'huertohogar_orders'; // Clave para órdenes
+const ORDERS_KEY = 'huertohogar_orders';
+const CATEGORIES_KEY = 'huertohogar_categories';
+const BLOG_KEY = 'huertohogar_blog'; // NUEVA CLAVE BLOG
 
 // --- Carrito ---
 export const getCart = () => {
@@ -22,142 +25,77 @@ export const getLoggedInUser = () => {
 };
 export const logoutUser = () => { localStorage.removeItem(USER_KEY); dispatchStorageUpdate(); };
 
-// --- Lista de Usuarios ---
+// --- Lista de Usuarios (Local fallback) ---
 export const getUsersList = () => {
   try { const users = localStorage.getItem(USERS_LIST_KEY); return users ? JSON.parse(users) : []; }
-  catch (e) { console.error("Error leer lista usuarios", e); return []; }
+  catch (e) { return []; }
 };
 export const addUserToList = (newUser) => {
-  const users = getUsersList(); if (users.some(u => u.email === newUser.email)) return false;
-  users.push(newUser); localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users)); return true;
+  const users = getUsersList(); 
+  if (users.some(u => u.email === newUser.email)) return false;
+  users.push(newUser); 
+  localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users)); 
+  return true;
 };
-export const saveUsersList = (users) => { // Para editar perfil
-  try { localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users)); }
-  catch (e) { console.error("Error guardar lista usuarios", e); }
-};
+export const saveUsersList = (users) => { localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users)); };
 
-// --- ÓRDENES (¡AQUÍ ESTÁ!) ---
-// Obtener todas las órdenes guardadas
-export const getOrders = () => { // <--- ¡ASEGÚRATE QUE ESTA FUNCIÓN EXISTA Y TENGA 'export'!
-  try {
-    const orders = localStorage.getItem(ORDERS_KEY);
-    return orders ? JSON.parse(orders) : []; // Devuelve array vacío si no hay órdenes
-  } catch (e) {
-    console.error("Error al leer las órdenes", e);
-    return [];
-  }
+// --- Órdenes ---
+export const getOrders = () => {
+  try { const orders = localStorage.getItem(ORDERS_KEY); return orders ? JSON.parse(orders) : []; } 
+  catch (e) { return []; }
 };
-
-// Guardar una nueva orden
-export const saveOrder = (newOrder) => { // <--- ¡ASEGÚRATE QUE ESTA FUNCIÓN EXISTA Y TENGA 'export'!
+export const saveOrder = (newOrder) => {
   try {
-    const orders = getOrders(); // Obtiene las órdenes existentes
-    orders.push(newOrder); // Añade la nueva orden al array
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); // Guarda el array actualizado
+    const orders = getOrders();
+    orders.push(newOrder);
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     return true;
-  } catch (e) {
-    console.error("Error al guardar la orden", e);
-    return false;
-  }
-};
-// ------------------------------
-
-// --- Evento de Actualización ---
-export const dispatchStorageUpdate = () => {
-  window.dispatchEvent(new Event('storageUpdate'));
+  } catch (e) { return false; }
 };
 
-// src/utils/localStorageHelper.js
-// ... (otras funciones como getCart, saveCart, etc.)
-
-// --- AÑADE ESTA SECCIÓN PARA CATEGORÍAS ---
-const CATEGORIES_KEY = 'huertohogar_categories';
-
-// Datos iniciales si no hay nada guardado
+// --- Categorías (Local fallback) ---
 const initialCategories = [
-  { key: 'frutas', nombre: 'Frutas' },
-  { key: 'verduras', nombre: 'Verduras' },
-  { key: 'lacteos', nombre: 'Lácteos' },
-  { key: 'organicos', nombre: 'Orgánicos' },
+  { key: 'frutas', nombre: 'Frutas' }, { key: 'verduras', nombre: 'Verduras' },
+  { key: 'lacteos', nombre: 'Lácteos' }, { key: 'organicos', nombre: 'Orgánicos' },
 ];
-
-// Obtener todas las categorías guardadas
 export const getCategories = () => {
+  try { const c = localStorage.getItem(CATEGORIES_KEY); return c ? JSON.parse(c) : initialCategories; } 
+  catch { return initialCategories; }
+};
+export const saveCategories = (c) => { localStorage.setItem(CATEGORIES_KEY, JSON.stringify(c)); dispatchStorageUpdate(); };
+export const addCategory = (newCat) => {
+  if (!newCat.key) return false;
+  const cats = getCategories();
+  if (cats.some(c => c.key === newCat.key)) return false;
+  cats.push(newCat); saveCategories(cats); return true;
+};
+export const updateCategory = (key, data) => {
+  const cats = getCategories(); const idx = cats.findIndex(c => c.key === key);
+  if (idx === -1) return false; cats[idx].nombre = data.nombre; saveCategories(cats); return true;
+};
+export const deleteCategory = (key) => {
+  const cats = getCategories(); const newCats = cats.filter(c => c.key !== key);
+  saveCategories(newCats); return true;
+};
+export const getAllCategories = getCategories; // Alias
+
+// --- BLOG (NUEVO) ---
+export const getBlogPosts = () => {
   try {
-    const storedCategories = localStorage.getItem(CATEGORIES_KEY);
-    if (storedCategories) {
-      return JSON.parse(storedCategories);
-    } else {
-      // Si no hay nada, inicializa con las categorías base
-      localStorage.setItem(CATEGORIES_KEY, JSON.stringify(initialCategories));
-      return initialCategories;
-    }
+    const storedPosts = localStorage.getItem(BLOG_KEY);
+    if (storedPosts) return JSON.parse(storedPosts);
+    // Si no hay, usar iniciales y guardar
+    localStorage.setItem(BLOG_KEY, JSON.stringify(initialBlogPosts || []));
+    return initialBlogPosts || [];
   } catch (e) {
-    console.error("Error al leer las categorías", e);
-    return initialCategories; // Retorna iniciales en caso de error
+    return initialBlogPosts || [];
   }
 };
 
-// Guardar la lista COMPLETA de categorías
-export const saveCategories = (categories) => {
-  try {
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-    dispatchStorageUpdate(); // Notifica si algo depende de las categorías
-  } catch (e) {
-    console.error("Error al guardar las categorías", e);
-  }
+export const getBlogPostById = (id) => {
+  const posts = getBlogPosts();
+  return posts.find(post => post.id === id);
 };
 
-// Añadir una nueva categoría (verifica duplicados por 'key')
-export const addCategory = (newCategory) => {
-  if (!newCategory || !newCategory.key || !newCategory.nombre) return false;
-  const categories = getCategories();
-  const lowerCaseKey = newCategory.key.toLowerCase().trim().replace(/\s+/g, '-'); // Normaliza la clave
-  if (categories.some(cat => cat.key === lowerCaseKey)) {
-    console.warn("Intento de añadir categoría duplicada:", lowerCaseKey);
-    return false; // Clave ya existe
-  }
-  const categoryToAdd = { ...newCategory, key: lowerCaseKey }; // Usa la clave normalizada
-  categories.push(categoryToAdd);
-  saveCategories(categories);
-  return true;
-};
-
-// Actualizar una categoría existente por su 'key'
-export const updateCategory = (categoryKey, updatedData) => {
-  let categories = getCategories();
-  const index = categories.findIndex(cat => cat.key === categoryKey);
-  if (index === -1) return false; // No encontrada
-
-  // No permitimos cambiar la 'key', solo el 'nombre'
-  categories[index] = { ...categories[index], nombre: updatedData.nombre };
-  saveCategories(categories);
-  return true;
-};
-
-// Eliminar una categoría por su 'key'
-export const deleteCategory = (categoryKey) => {
-  let categories = getCategories();
-  // **Importante:** Aquí deberías verificar si algún producto usa esta categoría antes de borrarla.
-  // Por simplicidad, ahora solo la filtramos.
-  // const products = getAdminProducts(); // Necesitarías importar getAdminProducts
-  // if (products.some(p => p.categoria === categoryKey)) {
-  //   alert(`No se puede eliminar la categoría "${categoryKey}" porque está asignada a uno o más productos.`);
-  //   return false;
-  // }
-  const updatedCategories = categories.filter(cat => cat.key !== categoryKey);
-  if (updatedCategories.length === categories.length) return false; // No se encontró/borró
-  saveCategories(updatedCategories);
-  return true;
-};
-
-// Función helper para obtener el nombre legible a partir de la clave
-export const getCategoryNameByKey = (key) => {
-    const categories = getCategories(); // Lee desde localStorage
-    const found = categories.find(cat => cat.key === key);
-    return found ? found.nombre : key; // Devuelve nombre o la clave si no se encuentra
-};
-
-// ---------------------------------------------
-
-// ... (resto de funciones como dispatchStorageUpdate)
+// --- Evento Global ---
+export const dispatchStorageUpdate = () => { window.dispatchEvent(new Event('storageUpdate')); };
